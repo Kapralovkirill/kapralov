@@ -1,0 +1,383 @@
+DROP DATABASE IF EXISTS sports_db;
+CREATE DATABASE IF NOT EXISTS sports_db CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
+USE sports_db;
+
+CREATE TABLE IF NOT EXISTS club (
+    id_club INT AUTO_INCREMENT NOT NULL,
+    appelation VARCHAR(100) NOT NULL,
+    town VARCHAR(50) NOT NULL,
+    address VARCHAR(150) NOT NULL,
+    CONSTRAINT pk_club PRIMARY KEY (id_club)
+);
+
+CREATE TABLE IF NOT EXISTS discharge (
+    discharge_code INT AUTO_INCREMENT NOT NULL,
+    appelation VARCHAR(50) NOT NULL,
+    CONSTRAINT pk_discharge PRIMARY KEY (discharge_code)
+);
+
+CREATE TABLE IF NOT EXISTS trainer (
+    id_trainer INT AUTO_INCREMENT NOT NULL,
+    name VARCHAR(50) NOT NULL,
+    surname VARCHAR(50) NOT NULL,
+    phone VARCHAR(20) NOT NULL,
+    id_club INT NOT NULL,
+    CONSTRAINT pk_trainer PRIMARY KEY (id_trainer),
+    CONSTRAINT fk_trainer_club FOREIGN KEY (id_club) 
+        REFERENCES club(id_club) ON UPDATE CASCADE ON DELETE RESTRICT
+);
+
+CREATE TABLE IF NOT EXISTS athlete (
+    athlete_code INT AUTO_INCREMENT NOT NULL,
+    name VARCHAR(50) NOT NULL,
+    surname VARCHAR(50) NOT NULL,
+    date_of_birth DATE NOT NULL,
+    passport VARCHAR(20) NOT NULL,
+    insurance VARCHAR(50) NOT NULL,
+    post VARCHAR(50) NULL,
+    phone VARCHAR(20) NULL,
+    id_club INT NOT NULL,
+    id_trainer INT NOT NULL,
+    discharge_code INT NOT NULL,
+    CONSTRAINT pk_athlete PRIMARY KEY (athlete_code),
+    CONSTRAINT uk_athlete_passport UNIQUE (passport),
+    CONSTRAINT fk_athlete_club FOREIGN KEY (id_club) 
+        REFERENCES club(id_club) ON UPDATE CASCADE ON DELETE RESTRICT,
+    CONSTRAINT fk_athlete_trainer FOREIGN KEY (id_trainer) 
+        REFERENCES trainer(id_trainer) ON UPDATE CASCADE ON DELETE RESTRICT,
+    CONSTRAINT fk_athlete_discharge FOREIGN KEY (discharge_code) 
+        REFERENCES discharge(discharge_code) ON UPDATE CASCADE ON DELETE RESTRICT
+);
+
+CREATE TABLE IF NOT EXISTS competition (
+    competition_code INT AUTO_INCREMENT NOT NULL,
+    competition_name VARCHAR(100) NOT NULL,
+    competition_date DATE NOT NULL,
+    town VARCHAR(50) NOT NULL,
+    address VARCHAR(150) NOT NULL,
+    CONSTRAINT pk_competition PRIMARY KEY (competition_code)
+);
+
+CREATE TABLE IF NOT EXISTS result (
+    id_result INT AUTO_INCREMENT NOT NULL,
+    athlete_code INT NOT NULL,
+    competition_code INT NOT NULL,
+    category VARCHAR(30) NOT NULL,
+    athlete_weight DECIMAL(4, 1) NOT NULL,
+    athlete_place INT NOT NULL,
+    CONSTRAINT pk_result PRIMARY KEY (id_result),
+    CONSTRAINT chk_result_weight CHECK (athlete_weight > 0),
+    CONSTRAINT chk_result_place CHECK (athlete_place >= 1),
+    CONSTRAINT fk_result_athlete FOREIGN KEY (athlete_code) 
+        REFERENCES athlete(athlete_code) ON UPDATE CASCADE ON DELETE CASCADE,
+    CONSTRAINT fk_result_competition FOREIGN KEY (competition_code) 
+        REFERENCES competition(competition_code) ON UPDATE CASCADE ON DELETE RESTRICT
+);
+
+
+
+USE sports_db;
+
+ALTER TABLE club 
+ADD COLUMN IF NOT EXISTS website VARCHAR(100) NULL AFTER address;
+
+ALTER TABLE competition 
+MODIFY COLUMN competition_name VARCHAR(150) NOT NULL;
+
+
+
+USE sports_db;
+
+INSERT INTO club (appelation, town, address, website) VALUES
+('СК Барс', 'Пермь', 'ул. Ленина, 10', 'https://bars-perm.ru'),
+('ДЮСШ Юность', 'Екатеринбург', 'пр. Мира, 45', NULL),
+('ЦСКА', 'Москва', 'Ленинградский пр., 39', 'https://cska.ru');
+
+INSERT INTO discharge (appelation) VALUES
+('1 юношеский разряд'),
+('3 спортивный разряд'),
+('Кандидат в мастера спорта'),
+('Мастер спорта России');
+
+INSERT INTO trainer (name, surname, phone, id_club) VALUES
+('Алексей', 'Смирнов', '+7(912)111-22-33', 1),
+('Дмитрий', 'Попов', '+7(922)444-55-66', 2),
+('Игорь', 'Васильев', '+7(999)777-88-99', 3);
+
+INSERT INTO athlete (name, surname, date_of_birth, passport, insurance, post, phone, id_club, id_trainer, discharge_code) VALUES
+('Иван', 'Иванов', '2005-04-12', '5719 123456', 'POL-7788991', 'ivanov@mail.ru', '+7(900)123-45-67', 1, 1, 3),
+('Михаил', 'Петров', '2004-11-20', '5718 654321', 'POL-7788992', 'petrov@gmail.com', '+7(900)234-56-78', 1, 1, 4),
+('Сергей', 'Сидоров', '2006-02-15', '6520 987654', 'POL-7788993', NULL, '+7(900)345-67-89', 2, 2, 2);
+
+INSERT INTO competition (competition_name, competition_date, town, address) VALUES
+('Кубок Пермского края по дзюдо', '2026-03-15', 'Пермь', 'ш. Космонавтов, 158а'),
+('Всероссийский турнир Надежды', '2026-05-20', 'Екатеринбург', 'ул. Олимпийская, 5');
+
+INSERT INTO result (athlete_code, competition_code, category, athlete_weight, athlete_place) VALUES
+(1, 1, 'до 66 кг', 65.5, 1),
+(2, 1, 'до 73 кг', 72.8, 2),
+(1, 2, 'до 66 кг', 65.8, 3);
+
+
+
+USE sports_db;
+
+UPDATE trainer
+SET phone = '+7(912)999-00-11'
+WHERE id_trainer = 1;
+
+-- Присвоение звания МС
+UPDATE athlete
+SET discharge_code = 4
+WHERE athlete_code = 1;
+
+
+
+USE sports_db;
+
+INSERT INTO result (athlete_code, competition_code, category, athlete_weight, athlete_place)
+VALUES (3, 1, 'до 81 кг', 80.5, 5);
+
+DELETE FROM result
+WHERE athlete_code = 3 AND competition_code = 1;
+
+
+
+USE sports_db;
+
+CREATE USER IF NOT EXISTS 'db_admin'@'localhost' IDENTIFIED BY 'Admin123!';
+CREATE USER IF NOT EXISTS 'secretary'@'localhost' IDENTIFIED BY 'Secr123!';
+CREATE USER IF NOT EXISTS 'guest_user'@'localhost' IDENTIFIED BY 'Guest123!';
+
+GRANT ALL PRIVILEGES ON sports_db.* TO 'db_admin'@'localhost';
+
+GRANT SELECT ON sports_db.* TO 'secretary'@'localhost';
+GRANT INSERT, UPDATE, DELETE ON sports_db.result TO 'secretary'@'localhost';
+GRANT INSERT, UPDATE ON sports_db.competition TO 'secretary'@'localhost';
+GRANT INSERT, UPDATE ON sports_db.athlete TO 'secretary'@'localhost';
+
+GRANT SELECT ON sports_db.competition TO 'guest_user'@'localhost';
+GRANT SELECT ON sports_db.result TO 'guest_user'@'localhost';
+
+
+
+USE sports_db;
+
+DESCRIBE club;
+DESCRIBE discharge;
+DESCRIBE trainer;
+DESCRIBE athlete;
+DESCRIBE competition;
+DESCRIBE result;
+
+
+
+USE sports_db;
+
+SELECT 
+    a.surname AS athlete_surname,
+    a.name AS athlete_name, 
+    a.date_of_birth,
+    c.appelation AS club_name,
+    c.town AS club_city
+FROM
+    athlete a,
+    trainer t,
+    club c
+WHERE
+    a.id_trainer = t.id_trainer
+    AND t.id_club = c.id_club
+    AND c.town = 'Пермь'
+ORDER BY
+    a.surname ASC,
+    a.name ASC;
+
+
+USE sports_db;
+
+SELECT
+    cmp.competition_name,
+    cmp.competition_date,
+    a.surname AS athlete_surname,
+    a.name AS athlete_name, 
+    r.category,
+    r.athlete_place
+FROM
+    result r
+INNER JOIN
+    athlete a ON r.athlete_code = a.athlete_code
+INNER JOIN
+    competition cmp ON r.competition_code = cmp.competition_code
+ORDER BY
+    cmp.competition_date DESC,
+    r.athlete_place ASC;
+
+USE sports_db;
+
+SELECT
+    COUNT(*) AS total_participants,
+    ROUND(AVG(athlete_weight), 2) AS average_weight,
+    MIN(athlete_weight) AS min_weight,
+    MAX(athlete_weight) AS max_weight,
+    SUM(athlete_place) AS total_places_sum
+FROM
+    result;
+
+
+USE sports_db;
+
+SELECT 
+    t.surname AS trainer_surname,
+    t.name AS trainer_name,
+    t.phone AS trainer_phone,
+    COUNT(a.athlete_code) AS total_athletes
+FROM 
+    trainer t
+INNER JOIN 
+    athlete a ON t.id_trainer = a.id_trainer
+GROUP BY 
+    t.id_trainer, 
+    t.surname, 
+    t.name, 
+    t.phone
+HAVING 
+    COUNT(a.athlete_code) > 1
+ORDER BY 
+    total_athletes DESC;
+
+
+USE sports_db;
+SELECT 
+    athlete_code,
+    surname,
+    name,
+    phone
+FROM 
+    athlete
+WHERE 
+    athlete_code IN (
+        SELECT r.athlete_code
+        FROM result r
+        INNER JOIN competition c ON r.competition_code = c.competition_code
+        WHERE c.town = 'Пермь'
+    );
+
+
+SELECT 
+    athlete_code,
+    competition_code,
+    category,
+    athlete_weight
+FROM 
+    result
+WHERE 
+    athlete_weight > ALL (
+        SELECT athlete_weight
+        FROM result
+        WHERE category = 'до 66 кг'
+    );
+
+
+
+
+SELECT 
+    a.surname,
+    a.name,
+    c.competition_name,
+    r.athlete_place,
+    CASE 
+        WHEN r.athlete_place = 1 THEN 'Золото (1 место)'
+        WHEN r.athlete_place = 2 THEN 'Серебро (2 место)'
+        WHEN r.athlete_place = 3 THEN 'Бронза (3 место)'
+        ELSE 'Участник'
+    END AS medal_status,
+    IF(a.post IS NOT NULL, a.post, 'Почта не указана') AS email_status
+FROM 
+    result r
+INNER JOIN 
+    athlete a ON r.athlete_code = a.athlete_code
+INNER JOIN 
+    competition c ON r.competition_code = c.competition_code;
+
+
+
+
+CREATE OR REPLACE VIEW view_tournament_results AS
+SELECT 
+    c.competition_name,
+    c.competition_date,
+    a.surname AS athlete_surname,
+    a.name AS athlete_name,
+    cl.appelation AS club_name,
+    d.appelation AS rank_name,
+    r.category,
+    r.athlete_place
+FROM 
+    result r
+INNER JOIN athlete a ON r.athlete_code = a.athlete_code
+INNER JOIN competition c ON r.competition_code = c.competition_code
+INNER JOIN club cl ON a.id_club = cl.id_club
+INNER JOIN discharge d ON a.discharge_code = d.discharge_code;
+
+
+SELECT * FROM view_tournament_results;
+
+
+WITH avg_weight_stats AS (
+    SELECT AVG(athlete_weight) AS overall_avg_weight
+    FROM result
+)
+SELECT 
+    a.surname,
+    a.name,
+    r.athlete_weight,
+    ROUND(stats.overall_avg_weight, 2) AS benchmark_avg
+FROM 
+    result r
+INNER JOIN 
+    athlete a ON r.athlete_code = a.athlete_code
+CROSS JOIN 
+    avg_weight_stats stats
+WHERE 
+    r.athlete_weight > stats.overall_avg_weight;
+
+
+EXPLAIN SELECT * FROM competition WHERE town = 'Пермь';
+
+CREATE INDEX idx_competition_town ON competition (town);
+
+
+EXPLAIN SELECT * FROM competition WHERE town = 'Пермь';
+
+
+
+START TRANSACTION;
+
+INSERT INTO athlete (
+    name, surname, date_of_birth, passport, insurance, post, phone, 
+    id_club, id_trainer, discharge_code
+) VALUES (
+    'Дмитрий', 'Соколов', '2005-08-14', '5722 998877', 'POL-554433', 
+    'sokolov@mail.ru', '+7(912)000-11-22', 1, 1, 2
+);
+
+INSERT INTO result (
+    athlete_code, competition_code, category, athlete_weight, athlete_place
+) VALUES (
+    4, 1, 'до 66 кг', 64.9, 4
+);
+
+COMMIT;
+
+
+
+PREPARE stmt_athletes_by_trainer FROM 
+    'SELECT athlete_code, surname, name, phone, discharge_code 
+     FROM athlete 
+     WHERE id_trainer = ?';
+
+SET @trainer_id = 1;
+
+EXECUTE stmt_athletes_by_trainer USING @trainer_id;
+
+DEALLOCATE PREPARE stmt_athletes_by_trainer;
